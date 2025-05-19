@@ -1,0 +1,664 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+    MapPin,
+    ArrowRight,
+    Car,
+    DirectionsCar,
+    DirectionsBike,
+    DirectionsWalk,
+    Search,
+    X,
+    Clock,
+    ChevronRight,
+    ChevronLeft,
+    User,
+    LogOut,
+    Settings,
+    Info,
+    CheckCircle,
+    AlertTriangle,
+    Loader2,
+    CreditCard,
+    Star,
+    Wallet,
+    Gift,
+    HelpCircle,
+    Award,
+    ShieldCheck,
+    FileText,
+    Percent,
+    Users,
+    Briefcase,
+    Building2,
+    MessageSquare,
+    Phone,
+    Mail,
+    Facebook,
+    Twitter,
+    Instagram,
+    Book,
+    GripVertical,
+    LifeBuoy
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// Mock data and types (Replace with actual API calls and data structures)
+interface Location {
+    id: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+    type: 'pickup' | 'dropoff';
+}
+
+interface Route {
+    id: string;
+    origin: Location;
+    destination: Location;
+    distance: number;
+    duration: number;
+    price: number;
+    vehicleType: 'car' | 'motorcycle' | 'bicycle' | 'walking';
+}
+
+interface UserProfile {
+    name: string;
+    email: string;
+    phone: string;
+    paymentMethod: 'creditCard' | 'wallet' | 'cash';
+    profilePicture: string;
+    isVerified: boolean;
+    language: 'en' | 'es' | 'fr';
+    homeAddress?: Location;
+    workAddress?: Location;
+}
+
+const mockLocations: Location[] = [
+    { id: 'loc1', name: 'Downtown Central', latitude: 34.0522, longitude: -118.2437, type: 'pickup' },
+    { id: 'loc2', name: 'Airport Terminal A', latitude: 33.9425, longitude: -118.4081, type: 'pickup' },
+    { id: 'loc3', name: 'University Campus', latitude: 34.0689, longitude: -118.4451, type: 'dropoff' },
+    { id: 'loc4', name: 'Business District', latitude: 34.0536, longitude: -118.2546, type: 'dropoff' },
+    { id: 'loc5', name: 'Residential Area', latitude: 34.0200, longitude: -118.2800, type: 'pickup' },
+    { id: 'loc6', name: 'Shopping Mall', latitude: 34.0750, longitude: -118.3000, type: 'dropoff' },
+    { id: 'loc7', name: 'Train Station', latitude: 34.0400, longitude: -118.2000, type: 'pickup' },
+    { id: 'loc8', name: 'Hospital', latitude: 34.0800, longitude: -118.2200, type: 'dropoff' },
+    { id: 'loc9', name: 'Park', latitude: 34.0300, longitude: -118.3500, type: 'pickup' },
+    { id: 'loc10', name: 'Hotel', latitude: 34.0900, longitude: -118.3800, type: 'dropoff' },
+];
+
+const mockRoutes: Route[] = [
+    {
+        id: 'route1',
+        origin: mockLocations[0],
+        destination: mockLocations[2],
+        distance: 15,
+        duration: 30,
+        price: 25.00,
+        vehicleType: 'car',
+    },
+    {
+        id: 'route2',
+        origin: mockLocations[1],
+        destination: mockLocations[3],
+        distance: 20,
+        duration: 40,
+        price: 35.00,
+        vehicleType: 'car',
+    },
+    {
+        id: 'route3',
+        origin: mockLocations[4],
+        destination: mockLocations[5],
+        distance: 8,
+        duration: 20,
+        price: 15.00,
+        vehicleType: 'motorcycle',
+    },
+    {
+        id: 'route4',
+        origin: mockLocations[6],
+        destination: mockLocations[7],
+        distance: 5,
+        duration: 15,
+        price: 10.00,
+        vehicleType: 'bicycle',
+    },
+    {
+        id: 'route5',
+        origin: mockLocations[8],
+        destination: mockLocations[9],
+        distance: 2,
+        duration: 10,
+        price: 5.00,
+        vehicleType: 'walking',
+    },
+    {
+        id: 'route6',
+        origin: mockLocations[0],
+        destination: mockLocations[3],
+        distance: 12,
+        duration: 25,
+        price: 20.00,
+        vehicleType: 'car'
+    },
+    {
+        id: 'route7',
+        origin: mockLocations[2],
+        destination: mockLocations[5],
+        distance: 10,
+        duration: 20,
+        price: 18.00,
+        vehicleType: 'motorcycle'
+    },
+    {
+        id: 'route8',
+        origin: mockLocations[1],
+        destination: mockLocations[4],
+        distance: 7,
+        duration: 18,
+        price: 12.00,
+        vehicleType: 'bicycle'
+    },
+    {
+        id: 'route9',
+        origin: mockLocations[7],
+        destination: mockLocations[9],
+        distance: 3,
+        duration: 12,
+        price: 7.00,
+        vehicleType: 'walking'
+    },
+    {
+        id: 'route10',
+        origin: mockLocations[4],
+        destination: mockLocations[0],
+        distance: 18,
+        duration: 35,
+        price: 30.00,
+        vehicleType: 'car'
+    }
+];
+
+const mockUserProfile: UserProfile = {
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+    phone: '+1 555-123-4567',
+    paymentMethod: 'creditCard',
+    profilePicture: 'https://via.placeholder.com/150',
+    isVerified: true,
+    language: 'en',
+    homeAddress: mockLocations[4], // Residential Area
+    workAddress: mockLocations[3], // Business District
+};
+
+const vehicleTypeIcons = {
+    car: <Car className="w-4 h-4" />,
+    motorcycle: <DirectionsCar className="w-4 h-4" />,
+    bicycle: <DirectionsBike className="w-4 h-4" />,
+    walking: <DirectionsWalk className="w-4 h-4" />,
+};
+
+const getRouteDetails = (originId: string, destinationId: string): Route | null => {
+    return mockRoutes.find(
+        (route) => route.origin.id === originId && route.destination.id === destinationId
+    ) || null;
+};
+
+const formatPrice = (price: number) => {
+    return price.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+};
+
+// Animation Variants
+const routeCardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+    exit: { opacity: 0, y: -20, transition: { duration: 0.2 } },
+};
+
+const modalVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: { opacity: 1, scale: 1, transition: { duration: 0.4, type: 'spring', stiffness: 120 } },
+    exit: { opacity: 0, scale: 0.8, transition: { duration: 0.2 } },
+};
+
+const OgaRideApp = () => {
+    const [origin, setOrigin] = useState<string>('');
+    const [destination, setDestination] = useState<string>('');
+    const [route, setRoute] = useState<Route | null>(null);
+    const [isSearching, setIsSearching] = useState<boolean>(false);
+    const [searchError, setSearchError] = useState<string | null>(null);
+    const [userProfile, setUserProfile] = useState<UserProfile>(mockUserProfile); // Replace with actual user data
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [isBooking, setIsBooking] = useState(false);
+    const [bookingStatus, setBookingStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+    const [selectedVehicle, setSelectedVehicle] = useState<'car' | 'motorcycle' | 'bicycle' | 'walking'>('car');
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [currentPage, setCurrentPage] = useState<'home' | 'rideHistory' | 'payment' | 'help'>('home');
+    const [language, setLanguage] = useState<'en' | 'es' | 'fr'>('en'); // Example language state
+    const [showWelcome, setShowWelcome] = useState(true);
+
+    // Simulate splash screen
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setShowWelcome(false);
+        }, 2000); // 2 seconds
+        return () => clearTimeout(timer);
+    }, []);
+
+    const handleSearch = useCallback(() => {
+        if (!origin || !destination) {
+            setSearchError('Please select both origin and destination.');
+            return;
+        }
+
+        setIsSearching(true);
+        setSearchError(null);
+
+        // Simulate API call delay
+        setTimeout(() => {
+            const foundRoute = getRouteDetails(origin, destination);
+            if (foundRoute) {
+                setRoute(foundRoute);
+            } else {
+                setSearchError('No route found for selected locations.');
+            }
+            setIsSearching(false);
+        }, 1500);
+    }, [origin, destination]);
+
+    const handleBookRide = () => {
+        if (!route) return;
+
+        setIsBooking(true);
+        setBookingStatus('pending');
+
+        // Simulate booking process
+        setTimeout(() => {
+            // Simulate success or failure randomly
+            const success = Math.random() > 0.2; // 80% chance of success
+            if (success) {
+                setBookingStatus('success');
+                // Clear the route after successful booking.
+                setRoute(null);
+                // Reset origin and destination
+                setOrigin('');
+                setDestination('');
+                // After a short delay, reset the booking status.
+                setTimeout(() => {
+                    setBookingStatus('idle');
+                    setIsBooking(false);
+                }, 3000);
+            } else {
+                setBookingStatus('error');
+                setTimeout(() => {
+                    setBookingStatus('idle');
+                    setIsBooking(false);
+                }, 3000); // Keep message for 3 seconds
+            }
+        }, 2000);
+    };
+
+    const handleClearSearch = () => {
+        setOrigin('');
+        setDestination('');
+        setRoute(null);
+        setSearchError(null);
+    };
+
+    const handleProfileUpdate = (updatedProfile: UserProfile) => {
+        setUserProfile(updatedProfile);
+        setIsProfileOpen(false); // Close modal after update
+    };
+
+    // --- UI Components ---
+
+    const LocationInput = ({
+        value,
+        onChange,
+        placeholder,
+        locations,
+        onSelect,
+        icon,
+    }: {
+        value: string;
+        onChange: (value: string) => void;
+        placeholder: string;
+        locations: Location[];
+        onSelect: (locationId: string) => void;
+        icon: React.ReactNode;
+    }) => {
+        const [filteredLocations, setFilteredLocations] = useState<Location[]>([]);
+        const [showDropdown, setShowDropdown] = useState(false);
+
+        useEffect(() => {
+            if (value) {
+                const filtered = locations.filter((loc) =>
+                    loc.name.toLowerCase().includes(value.toLowerCase())
+                );
+                setFilteredLocations(filtered);
+                setShowDropdown(true);
+            } else {
+                setFilteredLocations([]);
+                setShowDropdown(false);
+            }
+        }, [value, locations]);
+
+        return (
+            <div className="relative">
+                <div className="flex items-center">
+                    {icon}
+                    <Input
+                        type="text"
+                        placeholder={placeholder}
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        className="pl-10 pr-10" // Space for icon and clear button
+                        onFocus={() => setShowDropdown(!!value)} // Show dropdown on focus if there's a value
+                    />
+                    {value && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-2"
+                            onClick={() => {
+                                onChange('');
+                                setShowDropdown(false); // Hide dropdown when clearing
+                            }}
+                        >
+                            <X className="w-4 h-4" />
+                        </Button>
+                    )}
+                </div>
+                <AnimatePresence>
+                    {showDropdown && (
+                        <motion.ul
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg"
+                        >
+                            {filteredLocations.length > 0 ? (
+                                filteredLocations.map((location) => (
+                                    <li
+                                        key={location.id}
+                                        className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                                        onClick={() => {
+                                            onChange(location.name);
+                                            onSelect(location.id);
+                                            setShowDropdown(false); // Hide dropdown on select
+                                        }}
+                                    >
+                                        {location.name}
+                                    </li>
+                                ))
+                            ) : (
+                                <li className="px-4 py-2 text-gray-500">No locations found</li>
+                            )}
+                        </motion.ul>
+                    )}
+                </AnimatePresence>
+            </div>
+        );
+    };
+
+    const RouteCard = ({ route }: { route: Route }) => (
+        <motion.div
+            variants={routeCardVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="bg-white rounded-lg shadow-md p-4 space-y-4"
+        >
+            <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Route Details</h3>
+                <div className="flex items-center gap-2">
+                    {vehicleTypeIcons[route.vehicleType]}
+                    <span className="capitalize">{route.vehicleType}</span>
+                </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <p className="text-sm text-gray-500">Origin:</p>
+                    <p className="font-medium">{route.origin.name}</p>
+                </div>
+                <div>
+                    <p className="text-sm text-gray-500">Destination:</p>
+                    <p className="font-medium">{route.destination.name}</p>
+                </div>
+                <div>
+                    <p className="text-sm text-gray-500">Distance:</p>
+                    <p className="font-medium">{route.distance} km</p>
+                </div>
+                <div>
+                    <p className="text-sm text-gray-500">Duration:</p>
+                    <p className="font-medium">{route.duration} min</p>
+                </div>
+            </div>
+            <div className="flex items-center justify-between">
+                <p className="text-xl font-bold">{formatPrice(route.price)}</p>
+                <Button onClick={handleBookRide} disabled={isBooking} className="flex items-center gap-2">
+                    {isBooking ? (
+                        <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Booking...
+                        </>
+                    ) : (
+                        <>
+                            Book Ride
+                            <ArrowRight className="w-4 h-4" />
+                        </>
+                    )}
+                </Button>
+            </div>
+        </motion.div>
+    );
+
+    const BookingStatusModal = () => {
+        let message = '';
+        let icon = null;
+
+        switch (bookingStatus) {
+            case 'success':
+                message = 'Your ride has been booked successfully!';
+                icon = <CheckCircle className="w-16 h-16 text-green-500" />;
+                break;
+            case 'error':
+                message = 'Sorry, there was an error booking your ride. Please try again.';
+                icon = <AlertTriangle className="w-16 h-16 text-red-500" />;
+                break;
+            case 'pending':
+                message = 'Booking your ride...';
+                icon = <Loader2 className="w-16 h-16 animate-spin" />;
+                break;
+            default:
+                return null; // Don't show modal if idle
+        }
+
+        return (
+            <motion.div
+                variants={modalVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+            >
+                <div className="bg-white rounded-lg p-6 space-y-4 text-center w-full max-w-md">
+                    {icon}
+                    <p className="text-lg font-medium">{message}</p>
+                </div>
+            </motion.div>
+        );
+    };
+
+    const ProfilePage = () => {
+        const [editMode, setEditMode] = useState(false);
+        const [tempProfile, setTempProfile] = useState<UserProfile>(userProfile);
+
+        const handleInputChange = (field: keyof UserProfile, value: string | Location | undefined) => {
+            setTempProfile((prev) => ({ ...prev, [field]: value }));
+        };
+
+        const handleSave = () => {
+            handleProfileUpdate(tempProfile);
+            setEditMode(false);
+        };
+
+        const handleCancel = () => {
+            setTempProfile(userProfile); // Reset to original values
+            setEditMode(false);
+        };
+
+        const handleLogout = () => {
+            // Implement logout logic here (e.g., clear session, redirect)
+            console.log('Logging out...');
+        };
+
+        const handleLanguageChange = (lang: 'en' | 'es' | 'fr') => {
+            setLanguage(lang); // Update language state
+            setTempProfile(prev => ({...prev, language: lang}));
+        };
+
+        return (
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-semibold">
+                        {editMode ? 'Edit Profile' : 'My Profile'}
+                    </h2>
+                    {!editMode ? (
+                        <Button onClick={() => setEditMode(true)}>Edit</Button>
+                    ) : (
+                        <div className="flex gap-2">
+                            <Button onClick={handleSave}>Save</Button>
+                            <Button variant="outline" onClick={handleCancel}>
+                                Cancel
+                            </Button>
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <img
+                        src={editMode ? 'https://via.placeholder.com/150' : userProfile.profilePicture}
+                        alt="Profile"
+                        className="w-20 h-20 rounded-full"
+                    />
+                    {editMode && (
+                        <Button size="sm">Change Photo</Button>
+                    )}
+                </div>
+
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Name</label>
+                        <Input
+                            value={editMode ? tempProfile.name : userProfile.name}
+                            onChange={(e) => handleInputChange('name', e.target.value)}
+                            disabled={!editMode}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Email</label>
+                        <Input
+                            value={editMode ? tempProfile.email : userProfile.email}
+                            onChange={(e) => handleInputChange('email', e.target.value)}
+                            disabled={!editMode}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Phone</label>
+                        <Input
+                            value={editMode ? tempProfile.phone : userProfile.phone}
+                            onChange={(e) => handleInputChange('phone', e.target.value)}
+                            disabled={!editMode}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Payment Method</label>
+                        <select
+                            value={editMode ? tempProfile.paymentMethod : userProfile.paymentMethod}
+                            onChange={(e) => handleInputChange('paymentMethod', e.target.value as 'creditCard' | 'wallet' | 'cash')}
+                            disabled={!editMode}
+                            className="w-full p-2 border border-gray-300 rounded-md"
+                        >
+                            <option value="creditCard">Credit Card</option>
+                            <option value="wallet">Wallet</option>
+                            <option value="cash">Cash</option>
+                        </select>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Home Address</label>
+                         <Input
+                            value={editMode && tempProfile.homeAddress ? tempProfile.homeAddress.name : userProfile.homeAddress?.name || ''}
+                            onChange={(e) => handleInputChange('homeAddress', {id: 'home', name: e.target.value, latitude: 0, longitude: 0, type: 'pickup'})}
+                            disabled={!editMode}
+                        />
+                    </div>
+                     <div className="space-y-2">
+                        <label className="text-sm font-medium">Work Address</label>
+                         <Input
+                            value={editMode && tempProfile.workAddress? tempProfile.workAddress.name : userProfile.workAddress?.name || ''}
+                            onChange={(e) => handleInputChange('workAddress', {id: 'work', name: e.target.value, latitude: 0, longitude: 0, type: 'dropoff'})}
+                            disabled={!editMode}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Language</label>
+                        <div className="flex gap-2">
+                            <Button
+                                variant={language === 'en' ? 'default' : 'outline'}
+                                onClick={() => handleLanguageChange('en')}
+                                disabled={!editMode}
+                            >
+                                English
+                            </Button>
+                            <Button
+                                variant={language === 'es' ? 'default' : 'outline'}
+                                onClick={() => handleLanguageChange('es')}
+                                disabled={!editMode}
+                            >
+                                Español
+                            </Button>
+                            <Button
+                                variant={language === 'fr' ? 'default' : 'outline'}
+                                onClick={() => handleLanguageChange('fr')}
+                                disabled={!editMode}
+                            >
+                                Français
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+                <Button variant="destructive" onClick={handleLogout} className="mt-4">
+                    <LogOut className="mr-2 w-4 h-4" />
+                    Logout
+                </Button>
+            </div>
+        );
+    };
+
+    const OgaMenu = () => {
+      return (
+        <motion.div
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 flex"
+        >
+            <motion.div
+                initial={{ x: '-100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '-100%' }}
+                transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+                className="bg-white w-64 h-full p-4 space-y-6"
+            >
+                <div className="flex items-center justify-between">
+                    <h2 className="text-xlfont-semibold">Oga Ride</h2>
+                    <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(false)}>
+                        <X className="w-5 h-5" />
+                    </Button>
+                </div>
+                <nav className="space-y-
